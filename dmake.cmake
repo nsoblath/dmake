@@ -13,6 +13,7 @@ macro( dmake_project_begin LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VE
     
     # some project internal variables
     set( DM_PROJECT_NAME ${LOCAL_PROJECT_NAME} )
+    set( ${DM_PROJECT_NAME}_DEPENDENCIES "" )
     set( ${DM_PROJECT_NAME}_INCLUDES "" )
     set( ${DM_PROJECT_NAME}_HEADERS "" )
     set( ${DM_PROJECT_NAME}_LIBRARIES "" )
@@ -23,7 +24,7 @@ macro( dmake_project_begin LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VE
     set( ${DM_PROJECT_NAME}_VERSION_FULL "${${DM_PROJECT_NAME}_VERSION_MAJOR}.${${DM_PROJECT_NAME}_VERSION_MINOR}.${${DM_PROJECT_NAME}_VERSION_REVISION}" )
     set( ${DM_PROJECT_NAME}_IDENTIFIER "${DM_PROJECT_NAME}.${${DM_PROJECT_NAME}_VERSION_FULL}" )
     
-    # some project structual cache variables
+    # some advanced project structual cache variables
     set( ${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY "Include" CACHE STRING "name of subdirectory in library subdirectories in which header files are kept" )
     set( ${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY "Source" CACHE STRING "name of subdirectory in library subdirectories in which source are kept" )
     set( ${DM_PROJECT_NAME}_VERBOSE ON CACHE BOOL "report back to the user that everything is going ok" )
@@ -46,6 +47,22 @@ macro( dmake_project_begin LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VE
     if( NOT DEFINED ${DM_PROJECT_NAME}_INSTALL_PREFIX_INTERNAL )
         set( ${DM_PROJECT_NAME}_INSTALL_PREFIX_INTERNAL "${${DM_PROJECT_NAME}_INSTALL_PREFIX}" CACHE INTERNAL "" )
     endif( NOT DEFINED ${DM_PROJECT_NAME}_INSTALL_PREFIX_INTERNAL ) 
+    
+endmacro()
+
+macro( dmake_dependency LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VERSION LOCAL_REVISION_VERSION )
+    message( STATUS "*** external dependency declared <${LOCAL_PROJECT_NAME}>" )
+    
+    # import the dependency's things
+    include( $ENV{HOME}/.dmake/${LOCAL_PROJECT_NAME}.${LOCAL_MAJOR_VERSION}.${LOCAL_MINOR_VERSION}.${LOCAL_REVISION_VERSION}.cmake )
+    
+
+    
+    # talk about our feelings
+    if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
+        message( STATUS "*** external includes now <${${DM_PROJECT_NAME}_EXTERNAL_INCLUDES}>" )
+        message( STATUS "*** external libraries now <${${DM_PROJECT_NAME}_EXTERNAL_LIBRARIES}>" )
+    endif( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )    
     
 endmacro()
 
@@ -81,9 +98,8 @@ endmacro()
 
 # add header content to a library (MUST be previously declared!)
 macro( dmake_library_headers LOCAL_LIBRARY_NAME )
-    
-    # add headers to a library
     if( "${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY}" STREQUAL "" )
+    
         foreach( HEADER_FILE ${ARGN} )
             list( APPEND ${LOCAL_LIBRARY_NAME}_HEADERS ${${DM_PROJECT_NAME}_ROOT}/${${LOCAL_LIBRARY_NAME}_ROOT}/${HEADER_FILE} )
         endforeach()
@@ -163,6 +179,15 @@ endmacro()
 
 # trigger everything and finish
 macro( dmake_project_end )
+
+    # update the external includes
+    set( ${DM_PROJECT_NAME}_EXTERNAL_INCLUDES "${${DM_PROJECT_NAME}_EXTERNAL_INCLUDES} -I${${LOCAL_PROJECT_NAME}_INSTALL_HEADERS_DIR}" )
+    
+    # update the external libraries
+    set( ${DM_PROJECT_NAME}_EXTERNAL_LIBRARIES "${${DM_PROJECT_NAME}_EXTERNAL_LIBRARIES} -L${${LOCAL_PROJECT_NAME}_INSTALL_HEADERS_DIR}" )
+    foreach( EXTERNAL_LIBRARY ${${LOCAL_PROJECT_NAME}_LIBRARIES} )
+        set( ${DM_PROJECT_NAME}_EXTERNAL_LIBRARIES "${${DM_PROJECT_NAME}_EXTERNAL_LIBRARIES} -l${EXTERNAL_LIBRARY}" )
+    endforeach()
 
     # tell satan to add all includes to the global include path
     foreach( INCLUDE_NAME ${${DM_PROJECT_NAME}_INCLUDES} )
