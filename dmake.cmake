@@ -31,8 +31,8 @@ macro( dmake_project_begin LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VE
     mark_as_advanced( FORCE ${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY ${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY ${DM_PROJECT_NAME}_VERBOSE )
     
     # some project installation cache variables
-    set( ${DM_PROJECT_NAME}_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/.. )
-    set( ${DM_PROJECT_NAME}_INSTALL_PREFIX "${${DM_PROJECT_NAME}_ROOT}/Install" CACHE PATH "installation prefix (changing this will recompute other install locations)" )    
+    set( ${DM_PROJECT_NAME}_ROOT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/.. )
+    set( ${DM_PROJECT_NAME}_INSTALL_PREFIX "${${DM_PROJECT_NAME}_ROOT_DIRECTORY}/Install" CACHE PATH "installation prefix (changing this will recompute other install locations)" )    
     if( "${${DM_PROJECT_NAME}_INSTALL_PREFIX_INTERNAL}" STREQUAL "${${DM_PROJECT_NAME}_INSTALL_PREFIX}" )
         set( ${DM_PROJECT_NAME}_INSTALL_HEADERS_DIR "${${DM_PROJECT_NAME}_INSTALL_PREFIX}/include" CACHE PATH "installation directory for headers" )
         set( ${DM_PROJECT_NAME}_INSTALL_LIBRARIES_DIR "${${DM_PROJECT_NAME}_INSTALL_PREFIX}/lib" CACHE PATH "installation directory for libraries" )
@@ -51,63 +51,66 @@ macro( dmake_project_begin LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VE
 endmacro()
 
 macro( dmake_dependency LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VERSION LOCAL_REVISION_VERSION )
-    message( STATUS "*** external dependency declared <${LOCAL_PROJECT_NAME}>" )
     
-    # import the dependency's things
+    # import the dependency information
     include( $ENV{HOME}/.dmake/${LOCAL_PROJECT_NAME}.${LOCAL_MAJOR_VERSION}.${LOCAL_MINOR_VERSION}.${LOCAL_REVISION_VERSION}.cmake )
-    
 
+    # append the name of the dependency to the project dependency list
+    list( APPEND ${DM_PROJECT_NAME}_DEPENDENCIES ${LOCAL_PROJECT_NAME} )    
     
     # talk about our feelings
     if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
-        message( STATUS "*** external includes now <${${DM_PROJECT_NAME}_EXTERNAL_INCLUDES}>" )
-        message( STATUS "*** external libraries now <${${DM_PROJECT_NAME}_EXTERNAL_LIBRARIES}>" )
+        message( STATUS "*** declared dependency called <${LOCAL_PROJECT_NAME}>" )
     endif( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )    
     
 endmacro()
 
 # declare the existence of a library and the root subdirectory where its source code is kept
-macro( dmake_library_declare LOCAL_LIBRARY_NAME LOCAL_LIBRARY_ROOT )
+macro( dmake_library_declare LOCAL_LIBRARY_NAME LOCAL_LIBRARY_ROOT_DIRECTORY )
     
-    # record root directory and enable toggle for the library
-    set( ${LOCAL_LIBRARY_NAME}_ROOT ${LOCAL_LIBRARY_ROOT} )
+    # append the name of the library to the project library list
+    list( APPEND ${DM_PROJECT_NAME}_LIBRARIES ${LOCAL_LIBRARY_NAME} )
+    
+    # record root path of the library
+    set( ${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY ${${DM_PROJECT_NAME}_ROOT_DIRECTORY}/${LOCAL_LIBRARY_ROOT_DIRECTORY} )
+    
+    # record header path of the library
+    if( "${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY}" STREQUAL "" )
+        set( ${LOCAL_LIBRARY_NAME}_HEADER_DIRECTORY ${${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY} )
+    else( "${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY}" STREQUAL "" )
+        set( ${LOCAL_LIBRARY_NAME}_HEADER_DIRECTORY ${${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY}/${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY} )
+    endif( "${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY}" STREQUAL "" )
+    
+    # record source path of the library
+    if( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
+        set( ${LOCAL_LIBRARY_NAME}_SOURCE_DIRECTORY ${${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY} )
+    else( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
+        set( ${LOCAL_LIBRARY_NAME}_SOURCE_DIRECTORY ${${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY}/${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY} )
+    endif( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
+    
+    # add some editable cache variables controlling build behavior
     set( ${LOCAL_LIBRARY_NAME}_SHARED ON CACHE BOOL "enable or disable shared nature of library <${LOCAL_LIBRARY_NAME}>" )
     set( ${LOCAL_LIBRARY_NAME}_ENABLED ON CACHE BOOL "enable or disable building of library <${LOCAL_LIBRARY_NAME}>" )
     mark_as_advanced( ${LOCAL_LIBRARY_NAME}_SHARED ${LOCAL_LIBRARY_NAME}_ENABLED )
     
-    # clear out headers and sources for the library
+    # clear out headers and source lists for the library
     set( ${LOCAL_LIBRARY_NAME}_HEADERS "" )
     set( ${LOCAL_LIBRARY_NAME}_SOURCES "" )
     
-    # append the path to the headers in the library directory to the global include list
-    if( "${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY}" STREQUAL "" )
-        list( APPEND ${DM_PROJECT_NAME}_INCLUDES ${${DM_PROJECT_NAME}_ROOT}/${${LOCAL_LIBRARY_NAME}_ROOT} )
-    else( "${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY}" STREQUAL "" )
-        list( APPEND ${DM_PROJECT_NAME}_INCLUDES ${${DM_PROJECT_NAME}_ROOT}/${${LOCAL_LIBRARY_NAME}_ROOT}/${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY} )
-    endif( "${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY}" STREQUAL "" )
-    
-    # append the name of the library to the global library list
-    list( APPEND ${DM_PROJECT_NAME}_LIBRARIES ${LOCAL_LIBRARY_NAME} )
-    
     # talk about our feelings
     if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
-        message( STATUS "*** declared a library called <${LOCAL_LIBRARY_NAME}> in subdirectory <${${LOCAL_LIBRARY_NAME}_ROOT}>" )
+        message( STATUS "*** declared a library called <${LOCAL_LIBRARY_NAME}> in subdirectory <${${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY}>" )
     endif( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
     
 endmacro()
 
 # add header content to a library (MUST be previously declared!)
 macro( dmake_library_headers LOCAL_LIBRARY_NAME )
-    if( "${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY}" STREQUAL "" )
-    
-        foreach( HEADER_FILE ${ARGN} )
-            list( APPEND ${LOCAL_LIBRARY_NAME}_HEADERS ${${DM_PROJECT_NAME}_ROOT}/${${LOCAL_LIBRARY_NAME}_ROOT}/${HEADER_FILE} )
-        endforeach()
-    else( "${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY}" STREQUAL "" )
-        foreach( HEADER_FILE ${ARGN} )
-            list( APPEND ${LOCAL_LIBRARY_NAME}_HEADERS ${${DM_PROJECT_NAME}_ROOT}/${${LOCAL_LIBRARY_NAME}_ROOT}/${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY}/${HEADER_FILE} )
-        endforeach()
-    endif( "${${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY}" STREQUAL "" )
+
+    # add all headers given to the list of headers for this library
+    foreach( HEADER_FILE ${ARGN} )
+        list( APPEND ${LOCAL_LIBRARY_NAME}_HEADERS ${${LOCAL_LIBRARY_NAME}_HEADER_DIRECTORY}/${HEADER_FILE} )
+    endforeach()
     
     # talk about our feelings
     if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
@@ -119,15 +122,10 @@ endmacro()
 # add source content to a library (MUST be previously declared!)
 macro( dmake_library_sources LOCAL_LIBRARY_NAME )
 
-    if( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
-        foreach( SOURCE_FILE ${ARGN} )
-            list( APPEND ${LOCAL_LIBRARY_NAME}_SOURCES ${${DM_PROJECT_NAME}_ROOT}/${${LOCAL_LIBRARY_NAME}_ROOT}/${SOURCE_FILE} )
-        endforeach()
-    else( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
-        foreach( SOURCE_FILE ${ARGN} )
-            list( APPEND ${LOCAL_LIBRARY_NAME}_SOURCES ${${DM_PROJECT_NAME}_ROOT}/${${LOCAL_LIBRARY_NAME}_ROOT}/${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}/${SOURCE_FILE} )
-        endforeach()
-    endif( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
+    # add all given sources to the list of sources for this library
+    foreach( SOURCE_FILE ${ARGN} )
+        list( APPEND ${LOCAL_LIBRARY_NAME}_SOURCES ${${LOCAL_LIBRARY_NAME}_SOURCE_DIRECTORY}/${SOURCE_FILE} )
+    endforeach()
     
     # talk about our feelings
     if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
@@ -137,22 +135,31 @@ macro( dmake_library_sources LOCAL_LIBRARY_NAME )
 endmacro()
 
 # declare the existence of an executable and the root subdirectory where its sources are kept
-macro( dmake_executable_declare LOCAL_EXECUTABLE_NAME LOCAL_EXECUTABLE_ROOT )
+macro( dmake_executable_declare LOCAL_EXECUTABLE_NAME LOCAL_EXECUTABLE_ROOT_DIRECTORY )
     
-    # record root directory and enable toggle for the executable
-    set( ${LOCAL_EXECUTABLE_NAME}_ROOT ${LOCAL_EXECUTABLE_ROOT} ) 
+    # append the name of the executable to the project executable list
+    list( APPEND ${DM_PROJECT_NAME}_EXECUTABLES ${LOCAL_EXECUTABLE_NAME} )
+    
+    # record root path of the executable
+    set( ${LOCAL_EXECUTABLE_NAME}_ROOT_DIRECTORY ${${DM_PROJECT_NAME}_ROOT_DIRECTORY}/${LOCAL_EXECUTABLE_ROOT_DIRECTORY} )
+    
+    # record source path of the executable
+    if( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
+        set( ${LOCAL_EXECUTABLE_NAME}_SOURCE_DIRECTORY ${${LOCAL_EXECUTABLE_NAME}_ROOT_DIRECTORY} )
+    else( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
+        set( ${LOCAL_EXECUTABLE_NAME}_SOURCE_DIRECTORY ${${LOCAL_EXECUTABLE_NAME}_ROOT_DIRECTORY}/${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY} )
+    endif( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
+    
+    # add some editable cache variables controlling build behavior
     set( ${LOCAL_EXECUTABLE_NAME}_ENABLED ON CACHE BOOL "enable or disable building of library <${LOCAL_LIBRARY_NAME}>" )
     mark_as_advanced( ${LOCAL_EXECUTABLE_NAME}_ENABLED )
 
     # clear out sources for the executable    
     set( ${LOCAL_EXECUTABLE_NAME}_SOURCES "" )
-   
-    # append the name of the library to the global library list
-    list( APPEND ${DM_PROJECT_NAME}_EXECUTABLES ${LOCAL_EXECUTABLE_NAME} )
     
     # talk about our feelings
     if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
-        message( STATUS "*** declared an executable called <${LOCAL_EXECUTABLE_NAME}> at <${${LOCAL_EXECUTABLE_NAME}_ROOT}>" )
+        message( STATUS "*** declared an executable called <${LOCAL_EXECUTABLE_NAME}> at <${${LOCAL_EXECUTABLE_NAME}_ROOT_DIRECTORY}>" )
     endif( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
     
 endmacro()
@@ -160,15 +167,10 @@ endmacro()
 # add source content to an executable (MUST be previously declared!)
 macro( dmake_executable_sources LOCAL_EXECUTABLE_NAME )
 
-    if( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
-        foreach( SOURCE_FILE ${ARGN} )
-            list( APPEND ${LOCAL_EXECUTABLE_NAME}_SOURCES ${${DM_PROJECT_NAME}_ROOT}/${${LOCAL_EXECUTABLE_NAME}_ROOT}/${SOURCE_FILE} )
-        endforeach()
-    else( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
-        foreach( SOURCE_FILE ${ARGN} )
-            list( APPEND ${LOCAL_EXECUTABLE_NAME}_SOURCES ${${DM_PROJECT_NAME}_ROOT}/${${LOCAL_EXECUTABLE_NAME}_ROOT}/${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}/${SOURCE_FILE} )
-        endforeach()
-    endif( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
+    # add all source given to the list of sources for this executable
+    foreach( SOURCE_FILE ${ARGN} )
+        list( APPEND ${LOCAL_EXECUTABLE_NAME}_SOURCES ${${LOCAL_EXECUTABLE_NAME}_SOURCE_DIRECTORY}/${SOURCE_FILE} )
+    endforeach()
     
     # talk about our feelings
     if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
@@ -179,20 +181,36 @@ endmacro()
 
 # trigger everything and finish
 macro( dmake_project_end )
-
-    # update the external includes
-    set( ${DM_PROJECT_NAME}_EXTERNAL_INCLUDES "${${DM_PROJECT_NAME}_EXTERNAL_INCLUDES} -I${${LOCAL_PROJECT_NAME}_INSTALL_HEADERS_DIR}" )
     
-    # update the external libraries
-    set( ${DM_PROJECT_NAME}_EXTERNAL_LIBRARIES "${${DM_PROJECT_NAME}_EXTERNAL_LIBRARIES} -L${${LOCAL_PROJECT_NAME}_INSTALL_HEADERS_DIR}" )
-    foreach( EXTERNAL_LIBRARY ${${LOCAL_PROJECT_NAME}_LIBRARIES} )
-        set( ${DM_PROJECT_NAME}_EXTERNAL_LIBRARIES "${${DM_PROJECT_NAME}_EXTERNAL_LIBRARIES} -l${EXTERNAL_LIBRARY}" )
+    # prepare the compiler flags
+    set( COMPILER_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}" )
+    
+    # add all external includes to the compiler include path
+    foreach( DEPENDENCY_NAME ${${DM_PROJECT_NAME}_DEPENDENCIES} )
+        set( COMPILER_FLAGS "${COMPILER_FLAGS} -I${${DEPENDENCY_NAME}_INSTALL_HEADERS_DIR}" )
     endforeach()
 
-    # tell satan to add all includes to the global include path
-    foreach( INCLUDE_NAME ${${DM_PROJECT_NAME}_INCLUDES} )
-        include_directories( ${INCLUDE_NAME} )
+    # add all internal includes to the complier include path
+    foreach( LIBRARY_NAME ${${DM_PROJECT_NAME}_LIBRARIES} )
+        set( COMPILER_FLAGS "${COMPILER_FLAGS} -I${${LIBRARY_NAME}_HEADER_DIRECTORY}" )
     endforeach()
+    
+    message( STATUS "*** compiler flags are <${COMPILER_FLAGS}>" )
+    
+    
+    # prepare the linker flags
+    set( LINKER_FLAGS "" )
+    
+    # add all external libraries to the linker link path
+    foreach( DEPENDENCY_NAME ${${DM_PROJECT_NAME}_DEPENDENCIES} )
+        set( LINKER_FLAGS "${LINKER_FLAGS} -L${${DEPENDENCY_NAME}_INSTALL_LIBRARIES_DIR}" )
+        foreach( LIBRARY_NAME ${${DEPENDENCY_NAME}_LIBRARIES} )
+            set( LINKER_FLAGS "${LINKER_FLAGS} -l${LIBRARY_NAME}" )
+        endforeach()
+    endforeach()
+    
+    message( STATUS "*** linker flags are <${LINKER_FLAGS}>" )
+    
 
     # tell satan to add all libraries to the build
     foreach( LIBRARY_NAME ${${DM_PROJECT_NAME}_LIBRARIES} )
@@ -209,8 +227,19 @@ macro( dmake_project_end )
     foreach( EXECUTABLE_NAME ${${DM_PROJECT_NAME}_EXECUTABLES} )
         if( "${${EXECUTABLE_NAME}_ENABLED}" STREQUAL "ON" )
             add_executable( ${EXECUTABLE_NAME} ${${EXECUTABLE_NAME}_SOURCES} )
+            foreach( LIBRARY_NAME ${${DM_PROJECT_NAME}_LIBRARIES} )
+                if( "${${LIBRARY_NAME}_ENABLED}" STREQUAL "ON" )
+                    target_link_libraries( ${EXECUTABLE_NAME} ${LIBRARY_NAME} )
+                endif( "${${LIBRARY_NAME}_ENABLED}" STREQUAL "ON" )
+            endforeach()            
         endif( "${${EXECUTABLE_NAME}_ENABLED}" STREQUAL "ON" )
     endforeach()
+    
+    # tell satan about our compiler flags
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}" )
+    
+    # tell satan about our linker flags
+    set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}" )
     
     # prepare the cache directory
     set( PACKAGE_CACHE_DIRECTORY $ENV{HOME}/.dmake )
@@ -225,10 +254,10 @@ macro( dmake_project_end )
     file( APPEND ${PACKAGE_CACHE_FILE} "set( ${DM_PROJECT_NAME}_VERSION_FULL ${${DM_PROJECT_NAME}_VERSION_FULL} )\n" )
     file( APPEND ${PACKAGE_CACHE_FILE} "set( ${DM_PROJECT_NAME}_IDENTIFIER ${${DM_PROJECT_NAME}_IDENTIFIER} )\n" )
     file( APPEND ${PACKAGE_CACHE_FILE} "set( ${DM_PROJECT_NAME}_INSTALL_HEADERS_DIR ${${DM_PROJECT_NAME}_INSTALL_HEADERS_DIR} )\n" )
-    file( APPEND ${PACKAGE_CACHE_FILE} "set( ${DM_PROJECT_NAME}_LIBRARIES ${${DM_PROJECT_NAME}_LIBRARIES} ) \n" )
     file( APPEND ${PACKAGE_CACHE_FILE} "set( ${DM_PROJECT_NAME}_INSTALL_LIBRARIES_DIR ${${DM_PROJECT_NAME}_INSTALL_LIBRARIES_DIR} )\n" )
-    file( APPEND ${PACKAGE_CACHE_FILE} "set( ${DM_PROJECT_NAME}_EXECUTABLES ${${DM_PROJECT_NAME}_EXECUTABLES} )\n" )
     file( APPEND ${PACKAGE_CACHE_FILE} "set( ${DM_PROJECT_NAME}_INSTALL_EXECUTABLES_DIR ${${DM_PROJECT_NAME}_INSTALL_EXECUTABLES_DIR} )\n" )
+    file( APPEND ${PACKAGE_CACHE_FILE} "set( ${DM_PROJECT_NAME}_LIBRARIES ${${DM_PROJECT_NAME}_LIBRARIES} ) \n" )
+    file( APPEND ${PACKAGE_CACHE_FILE} "set( ${DM_PROJECT_NAME}_EXECUTABLES ${${DM_PROJECT_NAME}_EXECUTABLES} )\n" )
 
     #install everything
     install( FILES ${${DM_PROJECT_NAME}_HEADERS} DESTINATION ${${DM_PROJECT_NAME}_INSTALL_HEADERS_DIR} )
