@@ -14,7 +14,6 @@ macro( dmake_project_begin LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VE
     # some project internal variables
     set( DM_PROJECT_NAME ${LOCAL_PROJECT_NAME} )
     set( ${DM_PROJECT_NAME}_DEPENDENCIES "" )
-    set( ${DM_PROJECT_NAME}_INCLUDES "" )
     set( ${DM_PROJECT_NAME}_HEADERS "" )
     set( ${DM_PROJECT_NAME}_LIBRARIES "" )
     set( ${DM_PROJECT_NAME}_EXECUTABLES "" )
@@ -31,7 +30,7 @@ macro( dmake_project_begin LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VE
     mark_as_advanced( FORCE ${DM_PROJECT_NAME}_HEADER_SUBDIRECTORY ${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY ${DM_PROJECT_NAME}_VERBOSE )
     
     # some project installation cache variables
-    set( ${DM_PROJECT_NAME}_ROOT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/.. )
+    set( ${DM_PROJECT_NAME}_ROOT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
     set( ${DM_PROJECT_NAME}_INSTALL_PREFIX "${${DM_PROJECT_NAME}_ROOT_DIRECTORY}/Install" CACHE PATH "installation prefix (changing this will recompute other install locations)" )    
     if( "${${DM_PROJECT_NAME}_INSTALL_PREFIX_INTERNAL}" STREQUAL "${${DM_PROJECT_NAME}_INSTALL_PREFIX}" )
         set( ${DM_PROJECT_NAME}_INSTALL_HEADERS_DIR "${${DM_PROJECT_NAME}_INSTALL_PREFIX}/include" CACHE PATH "installation directory for headers" )
@@ -183,7 +182,7 @@ endmacro()
 macro( dmake_project_end )
     
     # prepare the compiler flags
-    set( COMPILER_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}" )
+    set( COMPILER_FLAGS "-I${CMAKE_CURRENT_BINARY_DIR}" )
     
     # add all external includes to the compiler include path
     foreach( DEPENDENCY_NAME ${${DM_PROJECT_NAME}_DEPENDENCIES} )
