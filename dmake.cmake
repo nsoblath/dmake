@@ -49,7 +49,7 @@ macro( dmake_project_begin LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VE
     
 endmacro()
 
-macro( dmake_dependency LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VERSION LOCAL_REVISION_VERSION )
+macro( dmake_dependency_declare LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VERSION LOCAL_REVISION_VERSION )
     
     # import the dependency information
     include( $ENV{HOME}/.dmake/${LOCAL_PROJECT_NAME}.${LOCAL_MAJOR_VERSION}.${LOCAL_MINOR_VERSION}.${LOCAL_REVISION_VERSION}.cmake )
@@ -60,6 +60,21 @@ macro( dmake_dependency LOCAL_PROJECT_NAME LOCAL_MAJOR_VERSION LOCAL_MINOR_VERSI
     # talk about our feelings
     if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
         message( STATUS "*** declared dependency called <${LOCAL_PROJECT_NAME}>" )
+    endif( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )    
+    
+endmacro()
+
+macro( dmake_dependency_foreign_declare LOCAL_PROJECT_NAME LOCAL_PROJECT_INSTALL_HEADERS_DIR LOCAL_PROJECT_INSTALL_LIBRARIES_DIR )
+
+    # append the name of the dependency to the project dependency list
+    list( APPEND ${DM_PROJECT_NAME}_DEPENDENCIES ${LOCAL_PROJECT_NAME} )
+    set( ${LOCAL_PROJECT_NAME}_INSTALL_HEADERS_DIR  "/usr/local/include" CACHE PATH "path to headers for <${LOCAL_PROJECT_NAME}>" )
+    set( ${LOCAL_PROJECT_NAME}_INSTALL_LIBRARIES_DIR  "/usr/local/lib" CACHE PATH "path to libraries for <${LOCAL_PROJECT_NAME}>" )
+    set( ${LOCAL_PROJECT_NAME}_LIBRARIES "" CACHE PATH "libraries for <${LOCAL_PROJECT_NAME}>" )
+    
+    # talk about our feelings
+    if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
+        message( STATUS "*** declared foreign dependency called <${LOCAL_PROJECT_NAME}>" )
     endif( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )    
     
 endmacro()
@@ -106,6 +121,11 @@ endmacro()
 # add header content to a library (MUST be previously declared!)
 macro( dmake_library_headers LOCAL_LIBRARY_NAME )
 
+    # make sure the library was defined
+    if( NOT DEFINED ${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY )
+        message( STATUS "*** library called <${LOCAL_LIBRARY_NAME} has not been defined!" )
+    endif( NOT DEFINED ${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY )
+
     # add all headers given to the list of headers for this library
     foreach( HEADER_FILE ${ARGN} )
         list( APPEND ${LOCAL_LIBRARY_NAME}_HEADERS ${${LOCAL_LIBRARY_NAME}_HEADER_DIRECTORY}/${HEADER_FILE} )
@@ -118,12 +138,57 @@ macro( dmake_library_headers LOCAL_LIBRARY_NAME )
     
 endmacro()
 
+# add header content to a library (MUST be previously declared!)
+macro( dmake_library_headers_external LOCAL_LIBRARY_NAME )
+
+    # make sure the library was defined
+    if( NOT DEFINED ${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY )
+        message( STATUS "*** library called <${LOCAL_LIBRARY_NAME} has not been defined!" )
+    endif( NOT DEFINED ${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY )
+
+    # add all headers given to the list of headers for this library
+    foreach( HEADER_FILE ${ARGN} )
+        list( APPEND ${LOCAL_LIBRARY_NAME}_HEADERS ${HEADER_FILE} )
+    endforeach()
+    
+    # talk about our feelings
+    if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
+        message( STATUS "*** library called <${LOCAL_LIBRARY_NAME}> has headers <${${LOCAL_LIBRARY_NAME}_HEADERS}>" )
+    endif( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
+    
+endmacro()
+
 # add source content to a library (MUST be previously declared!)
 macro( dmake_library_sources LOCAL_LIBRARY_NAME )
+
+    # make sure the library was defined
+    if( NOT DEFINED ${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY )
+        message( STATUS "*** library called <${LOCAL_LIBRARY_NAME} has not been defined!" )
+    endif( NOT DEFINED ${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY )
 
     # add all given sources to the list of sources for this library
     foreach( SOURCE_FILE ${ARGN} )
         list( APPEND ${LOCAL_LIBRARY_NAME}_SOURCES ${${LOCAL_LIBRARY_NAME}_SOURCE_DIRECTORY}/${SOURCE_FILE} )
+    endforeach()
+    
+    # talk about our feelings
+    if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
+        message( STATUS "*** library called <${LOCAL_LIBRARY_NAME}> has sources <${${LOCAL_LIBRARY_NAME}_SOURCES}>" )
+    endif( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
+
+endmacro()
+
+# add source content to a library (MUST be previously declared!)
+macro( dmake_library_sources_external LOCAL_LIBRARY_NAME )
+
+    # make sure the library was defined
+    if( NOT DEFINED ${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY )
+        message( STATUS "*** library called <${LOCAL_LIBRARY_NAME} has not been defined!" )
+    endif( NOT DEFINED ${LOCAL_LIBRARY_NAME}_ROOT_DIRECTORY )
+
+    # add all given sources to the list of sources for this library
+    foreach( SOURCE_FILE ${ARGN} )
+        list( APPEND ${LOCAL_LIBRARY_NAME}_SOURCES ${SOURCE_FILE} )
     endforeach()
     
     # talk about our feelings
@@ -166,6 +231,11 @@ endmacro()
 # add source content to an executable (MUST be previously declared!)
 macro( dmake_executable_sources LOCAL_EXECUTABLE_NAME )
 
+    # make sure the executable was defined
+    if( NOT DEFINED ${LOCAL_EXECUTABLE_NAME}_ROOT_DIRECTORY )
+        message( STATUS "*** executable called <${LOCAL_EXECUTABLE_NAME} has not been defined!" )
+    endif( NOT DEFINED ${LOCAL_EXECUTABLE_NAME}_ROOT_DIRECTORY )
+
     # add all source given to the list of sources for this executable
     foreach( SOURCE_FILE ${ARGN} )
         list( APPEND ${LOCAL_EXECUTABLE_NAME}_SOURCES ${${LOCAL_EXECUTABLE_NAME}_SOURCE_DIRECTORY}/${SOURCE_FILE} )
@@ -178,38 +248,55 @@ macro( dmake_executable_sources LOCAL_EXECUTABLE_NAME )
 
 endmacro()
 
+# add source content to an executable (MUST be previously declared!)
+macro( dmake_executable_sources_external LOCAL_EXECUTABLE_NAME )
+
+    # make sure the executable was defined
+    if( NOT DEFINED ${LOCAL_EXECUTABLE_NAME}_ROOT_DIRECTORY )
+        message( STATUS "*** executable called <${LOCAL_EXECUTABLE_NAME} has not been defined!" )
+    endif( NOT DEFINED ${LOCAL_EXECUTABLE_NAME}_ROOT_DIRECTORY )
+
+    # add all source given to the list of sources for this executable
+    foreach( SOURCE_FILE ${ARGN} )
+        list( APPEND ${LOCAL_EXECUTABLE_NAME}_SOURCES ${SOURCE_FILE} )
+    endforeach()
+    
+    # talk about our feelings
+    if( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
+        message( STATUS "*** executable called <${LOCAL_EXECUTABLE_NAME}> has sources <${${LOCAL_EXECUTABLE_NAME}_SOURCES}>" )
+    endif( "${${DM_PROJECT_NAME}_VERBOSE}" STREQUAL "ON" )
+
+endmacro()
+
 # trigger everything and finish
 macro( dmake_project_end )
     
-    # prepare the compiler flags
-    set( COMPILER_FLAGS "-I${CMAKE_CURRENT_BINARY_DIR}" )
-    
     # add all external includes to the compiler include path
+    set( EXTERNAL_INCLUDES "" )
     foreach( DEPENDENCY_NAME ${${DM_PROJECT_NAME}_DEPENDENCIES} )
-        set( COMPILER_FLAGS "${COMPILER_FLAGS} -I${${DEPENDENCY_NAME}_INSTALL_HEADERS_DIR}" )
+        list( APPEND EXTERNAL_INCLUDES "${${DEPENDENCY_NAME}_INSTALL_HEADERS_DIR}" )
     endforeach()
-
-    # add all internal includes to the complier include path
-    foreach( LIBRARY_NAME ${${DM_PROJECT_NAME}_LIBRARIES} )
-        set( COMPILER_FLAGS "${COMPILER_FLAGS} -I${${LIBRARY_NAME}_HEADER_DIRECTORY}" )
-    endforeach()
-    
-    message( STATUS "*** compiler flags are <${COMPILER_FLAGS}>" )
-    
-    
-    # prepare the linker flags
-    set( LINKER_FLAGS "" )
+    message( STATUS "*** external includes are <${EXTERNAL_INCLUDES}>" )
     
     # add all external libraries to the linker link path
     foreach( DEPENDENCY_NAME ${${DM_PROJECT_NAME}_DEPENDENCIES} )
-        set( LINKER_FLAGS "${LINKER_FLAGS} -L${${DEPENDENCY_NAME}_INSTALL_LIBRARIES_DIR}" )
         foreach( LIBRARY_NAME ${${DEPENDENCY_NAME}_LIBRARIES} )
-            set( LINKER_FLAGS "${LINKER_FLAGS} -l${LIBRARY_NAME}" )
+#            if( NOT DEFINED EXTERNAL_LIBRARIES )
+#                set( EXTERNAL_LIBRARIES "${${DEPENDENCY_NAME}_INSTALL_LIBRARIES_DIR}/lib${LIBRARY_NAME}.so" )
+#            else( NOT DEFINED EXTERNAL_LIBRARIES )
+#                set( EXTERNAL_LIBRARIES "${${DEPENDENCY_NAME}_INSTALL_LIBRARIES_DIR}/lib${LIBRARY_NAME}.so" )
+#            endif( NOT DEFINED EXTERNAL_LIBRARIES )
+            list( APPEND EXTERNAL_LIBRARIES "${${DEPENDENCY_NAME}_INSTALL_LIBRARIES_DIR}/lib${LIBRARY_NAME}.so" )
         endforeach()
     endforeach()
+    message( STATUS "*** external libraries are <${EXTERNAL_LIBRARIES}>" )
     
-    message( STATUS "*** linker flags are <${LINKER_FLAGS}>" )
     
+    # tell satan where the includes are
+    foreach( LIBRARY_NAME ${${DM_PROJECT_NAME}_LIBRARIES} )
+        include_directories( "${${LIBRARY_NAME}_HEADER_DIRECTORY}" )
+    endforeach()
+    include_directories( ${EXTERNAL_INCLUDES} ${INTERNAL_INCLUDES} )
 
     # tell satan to add all libraries to the build
     foreach( LIBRARY_NAME ${${DM_PROJECT_NAME}_LIBRARIES} )
@@ -219,6 +306,7 @@ macro( dmake_project_end )
             else( "${${LIBRARY_NAME}_SHARED}" STREQUAL "ON" )
                 add_library( ${LIBRARY_NAME} STATIC ${${LIBRARY_NAME}_SOURCES} )
             endif( "${${LIBRARY_NAME}_SHARED}" STREQUAL "ON" )
+            target_link_libraries( ${LIBRARY_NAME} ${EXTERNAL_LIBRARIES} )
         endif( "${${LIBRARY_NAME}_ENABLED}" STREQUAL "ON" )
     endforeach()
     
@@ -230,7 +318,8 @@ macro( dmake_project_end )
                 if( "${${LIBRARY_NAME}_ENABLED}" STREQUAL "ON" )
                     target_link_libraries( ${EXECUTABLE_NAME} ${LIBRARY_NAME} )
                 endif( "${${LIBRARY_NAME}_ENABLED}" STREQUAL "ON" )
-            endforeach()            
+            endforeach()
+            target_link_libraries( ${EXECUTABLE_NAME} ${EXTERNAL_LIBRARIES} )
         endif( "${${EXECUTABLE_NAME}_ENABLED}" STREQUAL "ON" )
     endforeach()
     
@@ -239,6 +328,8 @@ macro( dmake_project_end )
     
     # tell satan about our linker flags
     set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}" )
+    set( CMAKE_SHARED_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}" )
+    set( CMAKE_MODULE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}" )
     
     # prepare the cache directory
     set( PACKAGE_CACHE_DIRECTORY $ENV{HOME}/.dmake )
