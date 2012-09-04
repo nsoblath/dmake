@@ -281,11 +281,6 @@ macro( dmake_project_end )
     # add all external libraries to the linker link path
     foreach( DEPENDENCY_NAME ${${DM_PROJECT_NAME}_DEPENDENCIES} )
         foreach( LIBRARY_NAME ${${DEPENDENCY_NAME}_LIBRARIES} )
-#            if( NOT DEFINED EXTERNAL_LIBRARIES )
-#                set( EXTERNAL_LIBRARIES "${${DEPENDENCY_NAME}_INSTALL_LIBRARIES_DIR}/lib${LIBRARY_NAME}.so" )
-#            else( NOT DEFINED EXTERNAL_LIBRARIES )
-#                set( EXTERNAL_LIBRARIES "${${DEPENDENCY_NAME}_INSTALL_LIBRARIES_DIR}/lib${LIBRARY_NAME}.so" )
-#            endif( NOT DEFINED EXTERNAL_LIBRARIES )
             list( APPEND EXTERNAL_LIBRARIES "${${DEPENDENCY_NAME}_INSTALL_LIBRARIES_DIR}/lib${LIBRARY_NAME}.so" )
         endforeach()
     endforeach()
@@ -295,6 +290,9 @@ macro( dmake_project_end )
     # tell satan where the includes are
     foreach( LIBRARY_NAME ${${DM_PROJECT_NAME}_LIBRARIES} )
         include_directories( "${${LIBRARY_NAME}_HEADER_DIRECTORY}" )
+        foreach( HEADER_NAME ${${LIBRARY_NAME}_HEADERS} )
+            list( APPEND ${DM_PROJECT_NAME}_HEADERS ${HEADER_NAME} )
+        endforeach()
     endforeach()
     include_directories( ${EXTERNAL_INCLUDES} ${INTERNAL_INCLUDES} )
 
@@ -322,14 +320,6 @@ macro( dmake_project_end )
             target_link_libraries( ${EXECUTABLE_NAME} ${EXTERNAL_LIBRARIES} )
         endif( "${${EXECUTABLE_NAME}_ENABLED}" STREQUAL "ON" )
     endforeach()
-    
-    # tell satan about our compiler flags
-    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}" )
-    
-    # tell satan about our linker flags
-    set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}" )
-    set( CMAKE_SHARED_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}" )
-    set( CMAKE_MODULE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}" )
     
     # prepare the cache directory
     set( PACKAGE_CACHE_DIRECTORY $ENV{HOME}/.dmake )
