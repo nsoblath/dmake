@@ -215,7 +215,7 @@ macro( dmake_executable_declare LOCAL_EXECUTABLE_NAME LOCAL_EXECUTABLE_ROOT_DIRE
     endif( "${${DM_PROJECT_NAME}_SOURCE_SUBDIRECTORY}" STREQUAL "" )
     
     # add some editable cache variables controlling build behavior
-    set( ${LOCAL_EXECUTABLE_NAME}_ENABLED ON CACHE BOOL "enable or disable building of library <${LOCAL_LIBRARY_NAME}>" )
+    set( ${LOCAL_EXECUTABLE_NAME}_ENABLED ON CACHE BOOL "enable or disable building of executable <${LOCAL_EXECUTABLE_NAME}>" )
     mark_as_advanced( ${LOCAL_EXECUTABLE_NAME}_ENABLED )
 
     # clear out sources for the executable    
